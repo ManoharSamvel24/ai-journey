@@ -1,5 +1,5 @@
 import sqlite3
-
+from src.db_queries import docs_with_request_counts, most_expensive_documents
 import pytest
 
 from src.db import (
@@ -46,3 +46,33 @@ def test_log_request_and_sum(conn):
     totals = total_tokens(conn)
     assert totals["prompt_tokens"] == 15
     assert totals["output_tokens"] == 28
+
+
+def test_docs_with_request_counts(conn):
+    insert_document(conn, "d1", "a")
+    insert_document(conn, "d2", "b")
+    log_request(conn, "d1", "p", "r", 10, 5)
+    log_request(conn, "d1", "p", "r", 10, 5)
+    log_request(conn, "d2", "p", "r", 10, 5)
+
+    result = docs_with_request_counts(conn)
+    counts = {r["doc_id"]: r["request_count"] for r in result}
+    assert counts["d1"] == 2
+    assert counts["d2"] == 1
+
+
+def test_docs_with_zero_requests_still_listed(conn):
+    insert_document(conn, "d1", "a")
+    result = docs_with_request_counts(conn)
+    assert result[0]["request_count"] == 0
+
+
+def test_most_expensive_documents(conn):
+    insert_document(conn, "d1", "a")
+    insert_document(conn, "d2", "b")
+    log_request(conn, "d1", "p", "r", 10, 5)
+    log_request(conn, "d2", "p", "r", 100, 50)
+
+    result = most_expensive_documents(conn)
+    assert result[0]["doc_id"] == "d2"
+    assert result[0]["total_tokens"] == 150
