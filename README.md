@@ -1,2 +1,1 @@
-# ai-journey
-Learning log + projects for AI application engineering.
+# ai-journey - edited on main branch
