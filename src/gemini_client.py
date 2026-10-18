@@ -1,5 +1,5 @@
 import os
-
+import json
 from dotenv import load_dotenv
 from google import genai
 
@@ -28,3 +28,23 @@ def usage_info(text: str) -> dict:
         "prompt_tokens": interaction.usage.total_input_tokens,
         "output_tokens": interaction.usage.total_output_tokens,
     }
+
+def extract_info(text: str) -> dict:
+    prompt = f"""
+    Extract the name, age, and city from the text below.
+    Return ONLY a valid JSON object with keys: "name", "age", "city".
+    If a field is missing, use null.
+    
+    Text: {text}
+    """
+    
+    interaction = _client.interactions.create(
+        model=MODEL,
+        input=prompt,
+        response_format={"type": "json_object"} # Force JSON output!
+    )
+    
+    try:
+        return json.loads(interaction.output_text)
+    except json.JSONDecodeError:
+        raise ValueError("AI did not return valid JSON")

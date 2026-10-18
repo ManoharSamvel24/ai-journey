@@ -48,3 +48,26 @@ def summarize_endpoint(req: SummarizeRequest, db: sqlite3.Connection = Depends(g
     db.commit()
         
     return SummarizeResponse(summary=summary, char_count=len(req.text))
+
+# Add this near your other Pydantic models
+class ExtractRequest(BaseModel):
+    text: str
+
+class ExtractResponse(BaseModel):
+    name: str | None
+    age: int | None
+    city: str | None
+
+
+# Add this endpoint
+@app.post("/extract", response_model=ExtractResponse)
+def extract_endpoint(req: ExtractRequest):
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    
+    try:
+        data = extract_info(req.text)
+        # Pydantic validates the AI's output here!
+        return ExtractResponse(**data) 
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
