@@ -11,6 +11,15 @@ def init_db(path: str) -> None:
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_id TEXT NOT NULL,
+                text TEXT NOT NULL,
+                embedding TEXT NOT NULL,
+                FOREIGN KEY (doc_id) REFERENCES documents(doc_id)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 doc_id TEXT,

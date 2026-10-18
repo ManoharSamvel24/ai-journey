@@ -3,6 +3,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from src.gemini_client import summarize
 from src.db import init_db, log_request
+from src.rag import ingest_document, ask_question
+from src.db import insert_document
 
 app = FastAPI(title="AI Journey API")
 DB_PATH = "app.db"
@@ -28,6 +30,18 @@ class SummarizeRequest(BaseModel):
 class SummarizeResponse(BaseModel):
     summary: str
     char_count: int
+
+class DocumentUpload(BaseModel):
+    doc_id: str
+    text: str
+
+class AskRequest(BaseModel):
+    doc_id: str
+    question: str
+
+class AskResponse(BaseModel):
+    answer: str
+    sources: list[str]
 
 @app.get("/health")
 def health() -> dict:
@@ -71,3 +85,14 @@ def extract_endpoint(req: ExtractRequest):
         return ExtractResponse(**data) 
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/documents/upload")
+def upload_document(req: DocumentUpload, db: sqlite3.Connection = Depends(get_db)):
+    insert_document(db, req.doc_id, req.text)
+    ingest_document(db, req.doc_id, req.text)
+    return {"status": "success", "message": f"Document {req.doc_id} chunked and embedded."}
+
+@app.post("/documents/ask", response_model=AskResponse)
+def ask(req: AskRequest, db: sqlite3.Connection = Depends(get_db)):
+    result = ask_question(db, req.doc_id, req.question)
+    return AskResponse(answer=result["answer"], sources=result["sources"])
