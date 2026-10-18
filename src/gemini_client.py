@@ -48,3 +48,10 @@ def extract_info(text: str) -> dict:
         return json.loads(interaction.output_text)
     except json.JSONDecodeError:
         raise ValueError("AI did not return valid JSON")
+
+def get_embeddings(texts: list[str]) -> list[list[float]]:
+    response = _client.models.embed_content(
+        model="gemini-embedding-2",
+        contents=texts,
+    )
+    return [e.values for e in response.embeddings]
